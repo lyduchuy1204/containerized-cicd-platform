@@ -1,6 +1,6 @@
 def call(Map config = [:]) {
 
-    String agentLabel = config.get('agentLabel', 'linux')
+    String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String registryFile = config.get('registryFile', 'platform/projects.yaml')
     String defaultProject = config.get('project', '')
     int timeoutMinutes = config.get('timeoutMinutes', 60)

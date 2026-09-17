@@ -1,6 +1,6 @@
 def call(Map config = [:]) {
 
-    String agentLabel = config.get('agentLabel', 'linux')
+    String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String registryFile = config.get('registryFile', 'platform/projects.yaml')
     String defaultProject = config.get('project', '')
     String defaultEnvironment = config.get('environment', '')
@@ -189,7 +189,7 @@ def call(Map config = [:]) {
                 steps {
                     script {
                         withEnv(["NAMESPACE=${namespace}", "ENVIRONMENT=${environment}", "PROJECT=${project}"]) {
-                            sh smokeCommand
+                            shell.run(smokeCommand)
                         }
                     }
                 }
