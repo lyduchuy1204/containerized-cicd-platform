@@ -1,0 +1,159 @@
+name: product-media
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: mediauser
+      POSTGRES_PASSWORD: mediapass
+      POSTGRES_DB: mediadb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediauser -d mediadb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  storage-init:
+    image: alpine:3.21
+    user: "0:0"
+    command: ["sh", "-c", "mkdir -p /uploads/originals /uploads/processed && chown -R 10001:10001 /uploads"]
+    volumes:
+      - uploads-data:/uploads
+    restart: "no"
+
+  migration:
+    image: localhost:5000/product-media/api:dev
+    build:
+      context: ./services/api
+    command: ["npm", "run", "migration:run:prod"]
+    environment:
+      NODE_ENV: production
+      UPLOADS_DIR: /uploads
+      TMP_DIR: /tmp/uploads
+      MAX_UPLOAD_BYTES: "524288000"
+      DATABASE_URL: postgresql://mediauser:mediapass@postgres:5432/mediadb
+      REDIS_URL: redis://redis:6379
+      QUEUE_NAME: media-processing
+      MEDIA_RETENTION_HOURS: "24"
+      EXPIRY_SWEEP_INTERVAL_MINUTES: "15"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: localhost:5000/product-media/api:dev
+    build:
+      context: ./services/api
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      UPLOADS_DIR: /uploads
+      TMP_DIR: /tmp/uploads
+      MAX_UPLOAD_BYTES: "524288000"
+      DATABASE_URL: postgresql://mediauser:mediapass@postgres:5432/mediadb
+      REDIS_URL: redis://redis:6379
+      QUEUE_NAME: media-processing
+      MEDIA_RETENTION_HOURS: "24"
+      EXPIRY_SWEEP_INTERVAL_MINUTES: "15"
+      LOG_LEVEL: info
+      GRAPHQL_PLAYGROUND: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads-data:/uploads
+    tmpfs:
+      - /tmp/uploads:uid=10001,gid=10001,mode=0700
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+      storage-init:
+        condition: service_completed_successfully
+
+  worker:
+    image: localhost:5000/product-media/worker:dev
+    build:
+      context: ./services/worker
+    environment:
+      NODE_ENV: production
+      UPLOADS_DIR: /uploads
+      SCRATCH_DIR: /scratch
+      DATABASE_URL: postgresql://mediauser:mediapass@postgres:5432/mediadb
+      REDIS_URL: redis://redis:6379
+      QUEUE_NAME: media-processing
+      WORKER_CONCURRENCY: "1"
+      LEASE_DURATION_SECONDS: "120"
+      LEASE_RENEW_INTERVAL_SECONDS: "30"
+      MAX_ATTEMPTS: "3"
+      TRANSCODE_TIMEOUT_SECONDS: "1800"
+      MAX_INPUT_BYTES: "524288000"
+      MAX_DURATION_SECONDS: "600"
+      FFMPEG_PRESET: veryfast
+      FFMPEG_THREADS: "0"
+      THUMBNAIL_TIMESTAMP: "00:00:01"
+      LOG_LEVEL: info
+    volumes:
+      - uploads-data:/uploads
+    tmpfs:
+      - /scratch:uid=10001,gid=10001,mode=0700
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+      storage-init:
+        condition: service_completed_successfully
+
+  portal:
+    image: localhost:5000/product-media/portal:dev
+    build:
+      context: ./services/portal
+    read_only: true
+    tmpfs:
+      - /tmp/nginx:uid=10001,gid=10001,mode=0700
+    depends_on:
+      api:
+        condition: service_started
+
+  gateway:
+    image: nginxinc/nginx-unprivileged:1.27-alpine
+    read_only: true
+    ports:
+      - "8088:8080"
+    volumes:
+      - ./gateway.conf:/etc/nginx/nginx.conf:ro
+    tmpfs:
+      - /tmp/nginx:uid=101,gid=101,mode=0700
+    depends_on:
+      portal:
+        condition: service_started
+      api:
+        condition: service_started
+
+volumes:
+  postgres-data:
+  redis-data:
+  uploads-data:
