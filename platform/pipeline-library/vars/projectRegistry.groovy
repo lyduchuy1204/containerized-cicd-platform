@@ -54,6 +54,26 @@ def registryHost(Map registry, String projectName) {
     return setting(registry, projectName, 'registry', 'localhost:5000')
 }
 
+def insecureRegistry(Map registry, String projectName) {
+    return setting(registry, projectName, 'insecureRegistry', false)
+}
+
+def credentialsId(Map registry, String projectName) {
+    return setting(registry, projectName, 'registryCredentialsId', '')
+}
+
+def buildPlan(Map registry, String projectName) {
+    def plan = []
+    for (service in serviceNames(registry, projectName)) {
+        plan.add([
+            service: service,
+            image: imageName(registry, projectName, service),
+            context: servicePath(registry, projectName, service)
+        ])
+    }
+    return plan
+}
+
 def basePath(Map registry, String projectName) {
     return "${manifestRoot(registry, projectName)}/${projectName}/base"
 }

@@ -39,7 +39,7 @@ spec:
       containers:
         - name: api
           image: localhost:5000/product-media/api:placeholder
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 3000

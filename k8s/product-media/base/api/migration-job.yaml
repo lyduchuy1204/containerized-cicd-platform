@@ -22,7 +22,7 @@ spec:
       containers:
         - name: migration
           image: localhost:5000/product-media/api:placeholder
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["npm", "run", "migration:run:prod"]
           envFrom:
             - configMapRef:

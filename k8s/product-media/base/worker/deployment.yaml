@@ -30,7 +30,7 @@ spec:
       containers:
         - name: worker
           image: localhost:5000/product-media/worker:placeholder
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           envFrom:
             - configMapRef:
                 name: product-media-config

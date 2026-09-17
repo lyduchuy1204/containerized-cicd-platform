@@ -22,6 +22,13 @@ def undoRollout(String namespace, String deployment) {
     sh "kubectl -n ${namespace} rollout undo deployment/${deployment}"
 }
 
-def imageExists(String image, String tag) {
-    return sh(script: "docker manifest inspect ${image}:${tag}", returnStatus: true) == 0
+def restartRollout(String namespace, String deployment) {
+    sh "kubectl -n ${namespace} rollout restart deployment/${deployment}"
+}
+
+def runningDigest(String namespace, String serviceName) {
+    return sh(
+        script: "kubectl -n ${namespace} get pod -l app.kubernetes.io/name=${serviceName} -o jsonpath={.items[0].status.containerStatuses[0].imageID}",
+        returnStdout: true
+    ).trim()
 }

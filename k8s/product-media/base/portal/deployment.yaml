@@ -39,7 +39,7 @@ spec:
       containers:
         - name: portal
           image: localhost:5000/product-media/portal:placeholder
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
