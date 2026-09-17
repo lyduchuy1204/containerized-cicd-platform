@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: product-media-dev
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+images:
+  - name: localhost:5000/product-media/api
+    newTag: dev
+  - name: localhost:5000/product-media/portal
+    newTag: dev
+  - name: localhost:5000/product-media/worker
+    newTag: dev

@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: product-media-prod
+
+resources:
+  - namespace.yaml
+  - ../../base
+  - hpa.yaml
+
+images:
+  - name: localhost:5000/product-media/api
+    newTag: prod
+  - name: localhost:5000/product-media/portal
+    newTag: prod
+  - name: localhost:5000/product-media/worker
+    newTag: prod
+
+patches:
+  - target:
+      kind: Deployment
+      name: api
+    patch: |
+      - op: remove
+        path: /spec/replicas
+  - target:
+      kind: Deployment
+      name: portal
+    patch: |
+      - op: remove
+        path: /spec/replicas
+  - target:
+      kind: Deployment
+      name: worker
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
