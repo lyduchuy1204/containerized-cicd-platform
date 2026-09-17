@@ -142,7 +142,7 @@ services:
     image: nginxinc/nginx-unprivileged:1.27-alpine
     read_only: true
     ports:
-      - "8088:8080"
+      - "8080:8080"
     volumes:
       - ./gateway.conf:/etc/nginx/nginx.conf:ro
     tmpfs:
