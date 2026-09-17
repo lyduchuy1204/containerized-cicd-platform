@@ -62,6 +62,18 @@ def credentialsId(Map registry, String projectName) {
     return setting(registry, projectName, 'registryCredentialsId', '')
 }
 
+def migrationJob(Map registry, String projectName) {
+    return setting(registry, projectName, 'migrationJob', '')
+}
+
+def smokeCommand(Map registry, String projectName) {
+    return setting(registry, projectName, 'smokeCommand', '')
+}
+
+def hasEnvironment(Map registry, String projectName, String environment) {
+    return environments(registry, projectName).contains(environment)
+}
+
 def buildPlan(Map registry, String projectName) {
     def plan = []
     for (service in serviceNames(registry, projectName)) {

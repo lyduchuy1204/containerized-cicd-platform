@@ -16,6 +16,14 @@ def pull(String image, String tag) {
     sh "docker pull ${image}:${tag}"
 }
 
+def pullByDigest(String image, String digest) {
+    sh "docker pull ${image}@${digest}"
+}
+
+def retagFromDigest(String image, String digest, String targetTag) {
+    sh "docker tag ${image}@${digest} ${image}:${targetTag}"
+}
+
 def retag(String image, String sourceTag, String targetTag) {
     sh "docker tag ${image}:${sourceTag} ${image}:${targetTag}"
 }

@@ -9,6 +9,7 @@ projects:
   - name: product-media
     description: Product media service for merchant uploads, renditions and thumbnails.
     owner: platform-team
+    migrationJob: api-migration
     services:
       - name: api
         archetype: stateless-service

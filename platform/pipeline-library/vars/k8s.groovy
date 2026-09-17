@@ -26,9 +26,26 @@ def restartRollout(String namespace, String deployment) {
     sh "kubectl -n ${namespace} rollout restart deployment/${deployment}"
 }
 
+def deleteJob(String namespace, String jobName) {
+    sh "kubectl -n ${namespace} delete job ${jobName} --ignore-not-found"
+}
+
+def waitJob(String namespace, String jobName, String timeout = '240s') {
+    sh "kubectl -n ${namespace} wait --for=condition=complete job/${jobName} --timeout=${timeout}"
+}
+
+def jobLogs(String namespace, String jobName) {
+    sh(script: "kubectl -n ${namespace} logs job/${jobName} --tail=40", returnStatus: true)
+}
+
 def runningDigest(String namespace, String serviceName) {
-    return sh(
-        script: "kubectl -n ${namespace} get pod -l app.kubernetes.io/name=${serviceName} -o jsonpath={.items[0].status.containerStatuses[0].imageID}",
+    def raw = sh(
+        script: "kubectl -n ${namespace} get pod -l app.kubernetes.io/name=${serviceName} -o jsonpath='{.items[0].status.containerStatuses[0].imageID}' 2>/dev/null || true",
         returnStdout: true
     ).trim()
+
+    if (!raw.contains('@')) {
+        return ''
+    }
+    return raw.substring(raw.indexOf('@') + 1)
 }
