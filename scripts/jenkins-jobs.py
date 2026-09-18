@@ -104,14 +104,23 @@ def existing():
 
 
 def build(name, params=None):
-    query = ""
-    endpoint = f"/job/{urllib.parse.quote(name)}/build"
+    job = urllib.parse.quote(name)
+    attempts = []
     if params:
-        endpoint = f"/job/{urllib.parse.quote(name)}/buildWithParameters"
-        query = "?" + urllib.parse.urlencode(params)
-    status, body = call(endpoint + query, data=b"")
-    print(f"trigger {name}: http {status}")
-    return status in (200, 201, 302)
+        attempts.append(f"/job/{job}/buildWithParameters?" + urllib.parse.urlencode(params))
+        attempts.append(f"/job/{job}/build")
+    else:
+        attempts.append(f"/job/{job}/build")
+        attempts.append(f"/job/{job}/buildWithParameters")
+
+    for endpoint in attempts:
+        status, body = call(endpoint, data=b"")
+        if status in (200, 201, 302):
+            mode = "voi tham so" if "buildWithParameters" in endpoint else "khong tham so"
+            print(f"trigger {name}: http {status} ({mode})")
+            return True
+    print(f"trigger {name}: that bai, http {status}")
+    return False
 
 
 def result(name, number="lastBuild"):
