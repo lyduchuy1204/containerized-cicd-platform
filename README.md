@@ -157,10 +157,12 @@ containerized-cicd-platform/
 │           ├── staging/            namespace + image tag staging
 │           └── prod/               thêm hpa.yaml
 │
-└── scripts/
-    ├── jenkins-jobs.py             tạo node, tạo job, trigger build, đọc log qua REST API
-    ├── ecr-login.ps1               login ECR Public trên Windows agent
-    └── secret.ps1                  tạo secret database trong cluster
+├── scripts/
+│   ├── jenkins-jobs.py             tạo node, tạo job, trigger build, đọc log qua REST API
+│   ├── ecr-login.ps1               login ECR Public trên Windows agent
+│   └── secret.ps1                  tạo secret database trong cluster
+│
+└── docs/images/                    screenshot dùng trong README
 ```
 
 ### Vì sao tách `vars/` và `src/`
