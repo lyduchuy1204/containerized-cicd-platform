@@ -40,8 +40,6 @@ services:
 
   migration:
     image: public.ecr.aws/e2k8v4q1/product-media/api:dev
-    build:
-      context: ./services/api
     command: ["npm", "run", "migration:run:prod"]
     environment:
       NODE_ENV: production
@@ -60,8 +58,6 @@ services:
 
   api:
     image: public.ecr.aws/e2k8v4q1/product-media/api:dev
-    build:
-      context: ./services/api
     environment:
       NODE_ENV: production
       PORT: "3000"
@@ -93,8 +89,6 @@ services:
 
   worker:
     image: public.ecr.aws/e2k8v4q1/product-media/worker:dev
-    build:
-      context: ./services/worker
     environment:
       NODE_ENV: production
       UPLOADS_DIR: /uploads
@@ -129,8 +123,6 @@ services:
 
   portal:
     image: public.ecr.aws/e2k8v4q1/product-media/portal:dev
-    build:
-      context: ./services/portal
     read_only: true
     tmpfs:
       - /tmp/nginx:uid=10001,gid=10001,mode=0700

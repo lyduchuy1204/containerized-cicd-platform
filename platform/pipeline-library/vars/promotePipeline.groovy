@@ -7,6 +7,7 @@ def call(Map config = [:]) {
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String defaultProject = config.get('project', '')
+    String defaultService = config.get('service', '')
     int timeoutMinutes = config.get('timeoutMinutes', 20)
     int buildsToKeep = config.get('buildsToKeep', 30)
 
@@ -31,6 +32,11 @@ def call(Map config = [:]) {
                 name: 'PROJECT',
                 defaultValue: defaultProject,
                 description: 'Project declared in the platform registry.'
+            )
+            string(
+                name: 'SERVICE',
+                defaultValue: defaultService,
+                description: 'Service of the project. Leave empty to act on every service.'
             )
             string(
                 name: 'SOURCE_TAG',
@@ -84,7 +90,7 @@ def call(Map config = [:]) {
                         }
 
                         def registry = ProjectRegistry.load()
-                        plan = ProjectRegistry.buildPlan(registry, project)
+                        plan = ProjectRegistry.buildPlan(registry, project, params.SERVICE)
                         registryHost = ProjectRegistry.registryHost(registry, project)
                         credentialsId = ProjectRegistry.credentialsId(registry, project)
                         registryType = ProjectRegistry.registryType(registry, project)

@@ -14,12 +14,30 @@ TOKEN = os.environ.get("JENKINS_TOKEN", "")
 REPO = os.environ.get("PLATFORM_LIB_REPO", "https://github.com/lyduchuy1204/containerized-cicd-platform.git")
 BRANCH = os.environ.get("PLATFORM_LIB_VERSION", "main")
 
-JOBS = [
-    ("platform-validate", "Jenkinsfile", "Platform gate: lint pipelines, render overlays, server dry run."),
-    ("product-media-ci", "projects/product-media/ci.Jenkinsfile", "Build and push images for product-media."),
-    ("product-media-cd", "projects/product-media/cd.Jenkinsfile", "Deploy one environment of product-media."),
-    ("product-media-promote", "projects/product-media/promote.Jenkinsfile", "Move a pointer tag for product-media."),
+PROJECT = "product-media"
+SERVICES = ["api", "portal", "worker"]
+KINDS = [
+    ("main", "Mainstream: trigger validate, ci, cd dev, promote, cd staging, cd prod."),
+    ("ci", "Clone the service repo, build the image, push build tag and pointer tag."),
+    ("promote", "Move a pointer tag to an existing build tag. No rebuild."),
+    ("cd", "Deploy one environment of the service."),
 ]
+
+
+def job_list():
+    jobs = [("platform-validate", "Jenkinsfile",
+             "Platform gate: render overlays, check manifest policy, server dry run.")]
+    for service in SERVICES:
+        for kind, description in KINDS:
+            jobs.append((
+                f"{PROJECT}-{service}-{kind}",
+                f"projects/{PROJECT}/services/{service}/{kind}.Jenkinsfile",
+                f"{service}: {description}",
+            ))
+    return jobs
+
+
+JOBS = job_list()
 
 CONFIG = """<?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">

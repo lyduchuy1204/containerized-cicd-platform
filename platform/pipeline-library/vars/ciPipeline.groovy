@@ -1,14 +1,15 @@
 import com.platform.ProjectRegistry
 import com.platform.DockerImage
-import com.platform.ImageTag
+import com.platform.SourceCheckout
 
 def call(Map config = [:]) {
 
     def dockerImage = new DockerImage(this)
-    def imageTag = new ImageTag(this)
+    def sourceCheckout = new SourceCheckout(this)
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String defaultProject = config.get('project', '')
+    String defaultService = config.get('service', '')
     int timeoutMinutes = config.get('timeoutMinutes', 60)
     int buildsToKeep = config.get('buildsToKeep', 30)
 
@@ -20,6 +21,7 @@ def call(Map config = [:]) {
     String registryType = ''
     String awsRegion = ''
     def plan = []
+    def sourceCommits = [:]
 
     pipeline {
 
@@ -32,6 +34,11 @@ def call(Map config = [:]) {
                 name: 'PROJECT',
                 defaultValue: defaultProject,
                 description: 'Project declared in the platform registry.'
+            )
+            string(
+                name: 'SERVICE',
+                defaultValue: defaultService,
+                description: 'Service of the project. Leave empty to act on every service.'
             )
             string(
                 name: 'POINTER_TAG',
@@ -73,21 +80,21 @@ def call(Map config = [:]) {
                         }
 
                         def registry = ProjectRegistry.load()
-                        plan = ProjectRegistry.buildPlan(registry, project)
+                        plan = ProjectRegistry.buildPlan(registry, project, params.SERVICE)
                         registryHost = ProjectRegistry.registryHost(registry, project)
                         credentialsId = ProjectRegistry.credentialsId(registry, project)
                         registryType = ProjectRegistry.registryType(registry, project)
                         awsRegion = ProjectRegistry.awsRegion(registry, project)
-                        tag = imageTag.commit()
+                        tag = "b${BUILD_NUMBER}"
                         pointerTag = params.POINTER_TAG?.trim()
 
                         currentBuild.displayName = "#${BUILD_NUMBER} ${project} ${tag}"
                         echo "project     : ${project}"
                         echo "registry    : ${registryHost}"
-                        echo "commit tag  : ${tag}"
+                        echo "build tag   : ${tag}"
                         echo "pointer tag : ${pointerTag}"
                         for (unit in plan) {
-                            echo "service  : ${unit.service} -> ${unit.image}:${tag} from ${unit.context}"
+                            echo "service     : ${unit.service} <- ${unit.repo} ref ${unit.ref}"
                         }
                     }
                 }
@@ -104,6 +111,14 @@ def call(Map config = [:]) {
                         } else {
                             dockerImage.login(registryHost, credentialsId)
                         }
+                    }
+                }
+            }
+
+            stage('Checkout application sources') {
+                steps {
+                    script {
+                        sourceCommits = sourceCheckout.cloneAll(plan)
                     }
                 }
             }
@@ -153,9 +168,9 @@ def call(Map config = [:]) {
             stage('Report') {
                 steps {
                     script {
-                        def lines = ["project=${project}", "commit_tag=${tag}", "pointer_tag=${pointerTag}"]
+                        def lines = ["project=${project}", "build_tag=${tag}", "pointer_tag=${pointerTag}"]
                         for (unit in plan) {
-                            lines.add("${unit.image}:${tag}")
+                            lines.add("${unit.image}:${tag} source=${unit.repo}@${sourceCommits[unit.service]}")
                         }
                         writeFile file: 'target/ci-images.txt', text: lines.join('\n')
                         echo lines.join('\n')

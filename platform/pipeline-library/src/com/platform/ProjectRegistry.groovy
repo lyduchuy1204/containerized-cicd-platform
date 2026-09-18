@@ -115,8 +115,13 @@ class ProjectRegistry implements Serializable {
     }
 
     @NonCPS
+    static String sourceCheckoutDir(Map registry, String projectName) {
+        return setting(registry, projectName, 'sourceCheckoutDir', '.sources')
+    }
+
+    @NonCPS
     static String servicePath(Map registry, String projectName, String serviceName) {
-        return "${sourceRoot(registry, projectName)}/${projectName}/services/${serviceName}".toString()
+        return "${sourceCheckoutDir(registry, projectName)}/${serviceName}".toString()
     }
 
     @NonCPS
@@ -131,16 +136,35 @@ class ProjectRegistry implements Serializable {
     }
 
     @NonCPS
-    static List buildPlan(Map registry, String projectName) {
+    static List buildPlan(Map registry, String projectName, String serviceName = '') {
+        def wanted = serviceName == null ? '' : serviceName.trim()
         def plan = []
-        for (service in serviceNames(registry, projectName)) {
+        for (service in project(registry, projectName).services) {
+            if (wanted && service.name != wanted) {
+                continue
+            }
             plan.add([
-                service: service,
-                image: imageName(registry, projectName, service),
-                context: servicePath(registry, projectName, service)
+                service: service.name,
+                image: imageName(registry, projectName, service.name),
+                context: servicePath(registry, projectName, service.name),
+                repo: service.repo ?: '',
+                ref: service.ref ?: 'main'
             ])
         }
+        if (wanted && !plan) {
+            throw new IllegalArgumentException("service not declared for ${projectName}: ${wanted}")
+        }
         return plan
+    }
+
+    @NonCPS
+    static String migrationService(Map registry, String projectName) {
+        return setting(registry, projectName, 'migrationService', '')
+    }
+
+    @NonCPS
+    static String jobPrefix(Map registry, String projectName, String serviceName) {
+        return "${projectName}-${serviceName}".toString()
     }
 
     @NonCPS

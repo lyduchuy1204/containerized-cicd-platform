@@ -14,6 +14,7 @@ def call(Map config = [:]) {
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String defaultProject = config.get('project', '')
     String defaultEnvironment = config.get('environment', '')
+    String defaultService = config.get('service', '')
     String rolloutTimeout = config.get('rolloutTimeout', '5m')
     int timeoutMinutes = config.get('timeoutMinutes', 30)
     int buildsToKeep = config.get('buildsToKeep', 30)
@@ -44,6 +45,11 @@ def call(Map config = [:]) {
                 name: 'PROJECT',
                 defaultValue: defaultProject,
                 description: 'Project declared in the platform registry.'
+            )
+            string(
+                name: 'SERVICE',
+                defaultValue: defaultService,
+                description: 'Service of the project. Leave empty to act on every service.'
             )
             string(
                 name: 'ENVIRONMENT',
@@ -95,7 +101,7 @@ def call(Map config = [:]) {
                             error "environment ${environment} is not declared for project ${project}"
                         }
 
-                        plan = ProjectRegistry.buildPlan(registry, project)
+                        plan = ProjectRegistry.buildPlan(registry, project, params.SERVICE)
                         namespace = ProjectRegistry.namespace(registry, project, environment)
                         overlay = ProjectRegistry.overlayPath(registry, project, environment)
                         registryHost = ProjectRegistry.registryHost(registry, project)
@@ -103,6 +109,10 @@ def call(Map config = [:]) {
                         registryType = ProjectRegistry.registryType(registry, project)
                         awsRegion = ProjectRegistry.awsRegion(registry, project)
                         migrationJob = ProjectRegistry.migrationJob(registry, project)
+                        String owner = ProjectRegistry.migrationService(registry, project)
+                        if (params.SERVICE?.trim() && owner && params.SERVICE.trim() != owner) {
+                            migrationJob = ''
+                        }
                         smokeCommand = ProjectRegistry.smokeCommand(registry, project)
                         insecure = ProjectRegistry.insecureRegistry(registry, project)
                         tag = environment
