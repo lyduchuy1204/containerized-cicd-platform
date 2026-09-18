@@ -25,6 +25,8 @@ def call(Map config = [:]) {
     String tag = ''
     String registryHost = ''
     String credentialsId = ''
+    String registryType = ''
+    String awsRegion = ''
     String migrationJob = ''
     String smokeCommand = ''
     boolean insecure = false
@@ -53,6 +55,10 @@ def call(Map config = [:]) {
                 defaultValue: true,
                 description: 'On failure, move the pointer tag back to the digest that was running before this deploy.'
             )
+        }
+
+        environment {
+            DOCKER_CONFIG = "${WORKSPACE}/.docker-ecr"
         }
 
         options {
@@ -94,6 +100,8 @@ def call(Map config = [:]) {
                         overlay = ProjectRegistry.overlayPath(registry, project, environment)
                         registryHost = ProjectRegistry.registryHost(registry, project)
                         credentialsId = ProjectRegistry.credentialsId(registry, project)
+                        registryType = ProjectRegistry.registryType(registry, project)
+                        awsRegion = ProjectRegistry.awsRegion(registry, project)
                         migrationJob = ProjectRegistry.migrationJob(registry, project)
                         smokeCommand = ProjectRegistry.smokeCommand(registry, project)
                         insecure = ProjectRegistry.insecureRegistry(registry, project)
@@ -111,11 +119,15 @@ def call(Map config = [:]) {
 
             stage('Registry login') {
                 when {
-                    expression { credentialsId }
+                    expression { registryType == 'ecr-public' || credentialsId }
                 }
                 steps {
                     script {
-                        dockerImage.login(registryHost, credentialsId)
+                        if (registryType == 'ecr-public') {
+                            dockerImage.loginEcrPublic(awsRegion)
+                        } else {
+                            dockerImage.login(registryHost, credentialsId)
+                        }
                     }
                 }
             }

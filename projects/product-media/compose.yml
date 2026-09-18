@@ -39,7 +39,7 @@ services:
     restart: "no"
 
   migration:
-    image: localhost:5000/product-media/api:dev
+    image: public.ecr.aws/e2k8v4q1/product-media/api:dev
     build:
       context: ./services/api
     command: ["npm", "run", "migration:run:prod"]
@@ -59,7 +59,7 @@ services:
     restart: "no"
 
   api:
-    image: localhost:5000/product-media/api:dev
+    image: public.ecr.aws/e2k8v4q1/product-media/api:dev
     build:
       context: ./services/api
     environment:
@@ -92,7 +92,7 @@ services:
         condition: service_completed_successfully
 
   worker:
-    image: localhost:5000/product-media/worker:dev
+    image: public.ecr.aws/e2k8v4q1/product-media/worker:dev
     build:
       context: ./services/worker
     environment:
@@ -128,7 +128,7 @@ services:
         condition: service_completed_successfully
 
   portal:
-    image: localhost:5000/product-media/portal:dev
+    image: public.ecr.aws/e2k8v4q1/product-media/portal:dev
     build:
       context: ./services/portal
     read_only: true

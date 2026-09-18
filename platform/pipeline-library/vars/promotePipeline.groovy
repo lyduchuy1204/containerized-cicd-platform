@@ -15,6 +15,8 @@ def call(Map config = [:]) {
     String targetTag = ''
     String registryHost = ''
     String credentialsId = ''
+    String registryType = ''
+    String awsRegion = ''
     boolean insecure = false
     def plan = []
 
@@ -40,6 +42,10 @@ def call(Map config = [:]) {
                 defaultValue: '',
                 description: 'Pointer tag to move, for example staging or prod.'
             )
+        }
+
+        environment {
+            DOCKER_CONFIG = "${WORKSPACE}/.docker-ecr"
         }
 
         options {
@@ -81,6 +87,8 @@ def call(Map config = [:]) {
                         plan = ProjectRegistry.buildPlan(registry, project)
                         registryHost = ProjectRegistry.registryHost(registry, project)
                         credentialsId = ProjectRegistry.credentialsId(registry, project)
+                        registryType = ProjectRegistry.registryType(registry, project)
+                        awsRegion = ProjectRegistry.awsRegion(registry, project)
                         insecure = ProjectRegistry.insecureRegistry(registry, project)
 
                         currentBuild.displayName = "#${BUILD_NUMBER} ${project} ${sourceTag} to ${targetTag}"
@@ -94,11 +102,15 @@ def call(Map config = [:]) {
 
             stage('Registry login') {
                 when {
-                    expression { credentialsId }
+                    expression { registryType == 'ecr-public' || credentialsId }
                 }
                 steps {
                     script {
-                        dockerImage.login(registryHost, credentialsId)
+                        if (registryType == 'ecr-public') {
+                            dockerImage.loginEcrPublic(awsRegion)
+                        } else {
+                            dockerImage.login(registryHost, credentialsId)
+                        }
                     }
                 }
             }

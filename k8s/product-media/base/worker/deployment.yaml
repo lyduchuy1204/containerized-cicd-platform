@@ -29,7 +29,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: worker
-          image: localhost:5000/product-media/worker:placeholder
+          image: public.ecr.aws/e2k8v4q1/product-media/worker:placeholder
           imagePullPolicy: Always
           envFrom:
             - configMapRef:

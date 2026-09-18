@@ -10,8 +10,10 @@ class PlatformProjects implements Serializable {
             defaults: [
                 manifestRoot: 'k8s',
                 sourceRoot: 'projects',
-                registry: 'localhost:5000',
-                insecureRegistry: true,
+                registry: 'public.ecr.aws/e2k8v4q1',
+                registryType: 'ecr-public',
+                awsRegion: 'us-east-1',
+                insecureRegistry: false,
                 namespaceSuffixSeparator: '-'
             ],
             projects: [

@@ -8,11 +8,11 @@ resources:
   - ../../base
 
 images:
-  - name: localhost:5000/product-media/api
+  - name: public.ecr.aws/e2k8v4q1/product-media/api
     newTag: staging
-  - name: localhost:5000/product-media/portal
+  - name: public.ecr.aws/e2k8v4q1/product-media/portal
     newTag: staging
-  - name: localhost:5000/product-media/worker
+  - name: public.ecr.aws/e2k8v4q1/product-media/worker
     newTag: staging
 
 patches:

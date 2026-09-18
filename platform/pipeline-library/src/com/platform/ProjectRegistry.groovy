@@ -80,6 +80,16 @@ class ProjectRegistry implements Serializable {
     }
 
     @NonCPS
+    static String registryType(Map registry, String projectName) {
+        return setting(registry, projectName, 'registryType', '')
+    }
+
+    @NonCPS
+    static String awsRegion(Map registry, String projectName) {
+        return setting(registry, projectName, 'awsRegion', 'us-east-1')
+    }
+
+    @NonCPS
     static String migrationJob(Map registry, String projectName) {
         return setting(registry, projectName, 'migrationJob', '')
     }

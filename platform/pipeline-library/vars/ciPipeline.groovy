@@ -17,6 +17,8 @@ def call(Map config = [:]) {
     String pointerTag = ''
     String registryHost = ''
     String credentialsId = ''
+    String registryType = ''
+    String awsRegion = ''
     def plan = []
 
     pipeline {
@@ -41,6 +43,10 @@ def call(Map config = [:]) {
                 defaultValue: true,
                 description: 'Push the built images to the registry.'
             )
+        }
+
+        environment {
+            DOCKER_CONFIG = "${WORKSPACE}/.docker-ecr"
         }
 
         options {
@@ -70,6 +76,8 @@ def call(Map config = [:]) {
                         plan = ProjectRegistry.buildPlan(registry, project)
                         registryHost = ProjectRegistry.registryHost(registry, project)
                         credentialsId = ProjectRegistry.credentialsId(registry, project)
+                        registryType = ProjectRegistry.registryType(registry, project)
+                        awsRegion = ProjectRegistry.awsRegion(registry, project)
                         tag = imageTag.commit()
                         pointerTag = params.POINTER_TAG?.trim()
 
@@ -87,11 +95,15 @@ def call(Map config = [:]) {
 
             stage('Registry login') {
                 when {
-                    expression { credentialsId }
+                    expression { registryType == 'ecr-public' || credentialsId }
                 }
                 steps {
                     script {
-                        dockerImage.login(registryHost, credentialsId)
+                        if (registryType == 'ecr-public') {
+                            dockerImage.loginEcrPublic(awsRegion)
+                        } else {
+                            dockerImage.login(registryHost, credentialsId)
+                        }
                     }
                 }
             }

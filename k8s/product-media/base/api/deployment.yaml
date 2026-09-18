@@ -38,7 +38,7 @@ spec:
                     app.kubernetes.io/name: api
       containers:
         - name: api
-          image: localhost:5000/product-media/api:placeholder
+          image: public.ecr.aws/e2k8v4q1/product-media/api:placeholder
           imagePullPolicy: Always
           ports:
             - name: http

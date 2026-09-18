@@ -38,7 +38,7 @@ spec:
                     app.kubernetes.io/name: portal
       containers:
         - name: portal
-          image: localhost:5000/product-media/portal:placeholder
+          image: public.ecr.aws/e2k8v4q1/product-media/portal:placeholder
           imagePullPolicy: Always
           ports:
             - name: http

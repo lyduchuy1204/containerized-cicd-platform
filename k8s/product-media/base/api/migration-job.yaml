@@ -21,7 +21,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: migration
-          image: localhost:5000/product-media/api:placeholder
+          image: public.ecr.aws/e2k8v4q1/product-media/api:placeholder
           imagePullPolicy: Always
           command: ["npm", "run", "migration:run:prod"]
           envFrom:

@@ -1,0 +1,40 @@
+{
+  "name": "media-platform-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.102.8",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.6",
+    "@types/node": "22.19.1",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@typescript-eslint/eslint-plugin": "8.69.0",
+    "@typescript-eslint/parser": "8.69.0",
+    "@vitejs/plugin-react": "4.7.0",
+    "eslint": "8.57.1",
+    "eslint-plugin-boundaries": "5.4.0",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "jsdom": "25.0.1",
+    "typescript": "5.9.3",
+    "vite": "6.4.3",
+    "vitest": "3.2.7"
+  }
+}

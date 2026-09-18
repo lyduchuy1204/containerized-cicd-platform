@@ -25,6 +25,16 @@ class DockerImage implements Serializable {
         }
     }
 
+    void loginEcrPublic(String region, String registryHost = 'public.ecr.aws') {
+        if (steps.isUnix()) {
+            shell.run("aws ecr-public get-login-password --region ${region} | docker login ${registryHost} --username AWS --password-stdin")
+            return
+        }
+        steps.powershell(
+            "& '${steps.env.WORKSPACE}/scripts/ecr-login.ps1' -Registry '${registryHost}' -Region '${region}' -ConfigDir \"\$env:DOCKER_CONFIG\""
+        )
+    }
+
     void build(String image, String tag, String context) {
         shell.run("docker build -t ${image}:${tag} ${context}")
     }
