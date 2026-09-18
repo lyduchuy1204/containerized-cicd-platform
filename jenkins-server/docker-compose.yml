@@ -1,0 +1,29 @@
+services:
+  jenkins:
+    image: ${JENKINS_IMAGE:-jenkins/jenkins:2.568.3-lts-jdk21}
+    container_name: ${JENKINS_CONTAINER_NAME:-jenkins-server}
+    restart: unless-stopped
+    ports:
+      - "${JENKINS_BIND_IP:-127.0.0.1}:${JENKINS_HTTP_PORT:-80}:8080"
+      - "${JENKINS_BIND_IP:-127.0.0.1}:${JENKINS_AGENT_PORT:-50000}:50000"
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      JAVA_OPTS: >-
+        -Djava.awt.headless=true
+        -Djenkins.install.runSetupWizard=${RUN_SETUP_WIZARD:-true}
+      JENKINS_OPTS: --httpPort=8080
+    volumes:
+      - type: bind
+        source: ${JENKINS_HOME_HOST:-./jenkins_home}
+        target: /var/jenkins_home
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/login >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: ${JENKINS_MEM_LIMIT:-2g}

@@ -13,8 +13,11 @@ Repo nay chua:
 ## 1. Kien truc repo
 
 ```
-docker-compose.yml                Jenkins controller + Jenkins agent + demo application
+docker-compose.yml                aggregator: include jenkins-server va demo app, dinh nghia agent
 Jenkinsfile                       job platform-validate
+jenkins-server/
+  docker-compose.yml              dinh nghia Jenkins controller, JENKINS_HOME bind mount ra host
+  README.md                       cach start, stop, backup, nang version controller
 platform/
   jenkins/agent/Dockerfile        image agent co docker cli, kubectl, aws cli, git, python3
   pipeline-library/
@@ -72,6 +75,10 @@ cp .env.example .env
 docker compose up -d jenkins
 docker compose logs -f jenkins
 ```
+
+Service `jenkins` duoc dinh nghia trong `jenkins-server/docker-compose.yml` va keo vao bang `include`,
+nen chi ton tai o mot cho. `JENKINS_HOME` bind mount ra `jenkins-server/jenkins_home` va bi gitignore.
+Thu muc `jenkins-server/` cung chay doc lap duoc, xem README trong do.
 
 Jenkins len o `http://127.0.0.1`. Lan dau can lay mat khau initial admin:
 
