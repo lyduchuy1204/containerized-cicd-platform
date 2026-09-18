@@ -1,20 +1,25 @@
 # jenkins-server
 
-Jenkins controller chạy bằng Docker Compose. `JENKINS_HOME` được bind mount ra `./jenkins_home` trên ổ đĩa
-host, nên container có thể xoá hay đổi image bất cứ lúc nào mà job, build history, credential và cấu hình
-vẫn còn.
+Jenkins controller và Jenkins agent chạy bằng Docker Compose. `JENKINS_HOME` được bind mount ra
+`./jenkins_home` trên ổ đĩa host, nên container có thể xoá hay đổi image bất cứ lúc nào mà job, build
+history, credential và cấu hình vẫn còn.
+
+| Service | Định nghĩa | Vai trò |
+| --- | --- | --- |
+| `jenkins` | `docker-compose.yml` | controller, UI ở cổng 80 |
+| `agent` | `docker-compose.yml` + `agent/Dockerfile` | executor có docker cli, kubectl, aws cli, git, python3 |
 
 ## Yêu cầu
 
 - Docker Desktop ở chế độ Linux containers, kiểm bằng `docker info --format '{{.OSType}}'`
 - Cổng 80 còn trống, hoặc đổi `JENKINS_HTTP_PORT` trong `.env`
 
-## Start
+## Start controller
 
 ```
 cd jenkins-server
 cp .env.example .env
-docker compose up -d
+docker compose up -d jenkins
 ```
 
 Chờ healthcheck chuyển sang `healthy`, lần đầu mất vài phút vì Jenkins phải giải nén war:
@@ -40,9 +45,45 @@ password bằng:
 docker compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
+## Start agent
+
+Agent cần secret của node nên phải tạo node trên controller trước:
+
+```
+$env:JENKINS_URL='http://127.0.0.1'
+$env:JENKINS_USER='admin'
+$env:JENKINS_TOKEN='<api-token>'
+python ../scripts/jenkins-jobs.py node
+```
+
+Ghi secret in ra vào `JENKINS_AGENT_SECRET` trong `.env`, rồi:
+
+```
+docker compose up -d --build agent
+docker compose logs -f agent
+```
+
+Log phải có dòng `Connected`. Kiểm trên UI ở **Manage Jenkins > Nodes**, node `executor-cluster-local` ở
+trạng thái online.
+
+Agent mount `/var/run/docker.sock` để build image và mount `~/.kube/config` để chạy kubectl. Vì kubeconfig
+của Docker Desktop trỏ đến `kubernetes.docker.internal:6443`, compose thêm
+`extra_hosts: kubernetes.docker.internal:host-gateway` để container giải được tên này. Agent chạy bằng
+`user: root` để đọc được docker socket của host.
+
+Muốn dùng agent native trên Windows thay cho container thì tải `agent.jar` và chạy:
+
+```
+java -jar agent.jar -url http://127.0.0.1:80/ -secret <secret> -name "executor-cluster-local" -webSocket -workDir "c:\jenkins"
+```
+
+Hai cách không chạy đồng thời được vì cùng tên node. Pipeline không phụ thuộc hệ điều hành, class `Shell`
+tự chọn `sh` hoặc `bat` theo `isUnix()`.
+
 ## Các lệnh thường dùng
 
 ```
+docker compose ps
 docker compose logs -f jenkins
 docker compose restart jenkins
 docker compose stop
@@ -97,3 +138,8 @@ Mọi biến đều có default, chỉ sửa khi cần. Xem `.env.example`.
 | `JENKINS_BIND_IP` | `127.0.0.1` | địa chỉ bind |
 | `JENKINS_MEM_LIMIT` | `2g` | giới hạn RAM |
 | `RUN_SETUP_WIZARD` | `true` | bật setup wizard lần đầu |
+| `JENKINS_AGENT_SECRET` | không có | bắt buộc để dựng agent, lấy bằng `jenkins-jobs.py node` |
+| `JENKINS_NODE_NAME` | `executor-cluster-local` | tên node và label của agent |
+| `JENKINS_AGENT_IMAGE` | `platform/jenkins-agent:local` | tag của agent image |
+| `JENKINS_AGENT_CONTAINER_NAME` | `jenkins-agent` | tên container agent |
+| `KUBECONFIG_HOST` | `~/.kube/config` | kubeconfig mount vào agent |

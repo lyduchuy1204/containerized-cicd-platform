@@ -60,8 +60,9 @@ chuyển `Ready`.
 
 ## 2. Jenkins Server local
 
-Jenkins controller được định nghĩa trong **[`jenkins-server/docker-compose.yml`](jenkins-server/docker-compose.yml)**.
-Hướng dẫn chi tiết về start, stop, backup, nâng version nằm trong **[`jenkins-server/README.md`](jenkins-server/README.md)**.
+Jenkins controller và Jenkins agent được định nghĩa trong
+**[`jenkins-server/docker-compose.yml`](jenkins-server/docker-compose.yml)**. Hướng dẫn chi tiết về start,
+stop, backup, nâng version nằm trong **[`jenkins-server/README.md`](jenkins-server/README.md)**.
 
 Deploy nhanh:
 
@@ -85,13 +86,7 @@ docker compose ps
 `JENKINS_HOME` được bind mount ra `jenkins-server/jenkins_home` nên container xoá đi dựng lại vẫn còn job,
 build history và credential. Thư mục này bị gitignore vì chứa `secret.key` và `secrets/master.key`.
 
-File `docker-compose.yml` ở root dùng `include` để kéo định nghĩa này vào, nên service `jenkins` chỉ tồn
-tại ở một chỗ. Chạy từ root thì có thêm Jenkins agent và demo application:
-
-```bash
-cp .env.example .env
-docker compose up -d
-```
+Lệnh trên chỉ dựng controller. Agent cần secret của node nên dựng sau, xem 6.1.
 
 Plugin bắt buộc cho pipeline trong repo: `pipeline-groovy-lib`, `workflow-basic-steps`,
 `credentials-binding`, `ws-cleanup`, `timestamper`, `pipeline-input-step`, `pipeline-build-step`, `git`.
@@ -105,17 +100,15 @@ với `modernSCM` và `libraryPath: platform/pipeline-library`.
 
 ```
 containerized-cicd-platform/
-├── docker-compose.yml              aggregator: include jenkins-server + demo app, định nghĩa agent
-├── .env.example                    biến cho agent, controller cấu hình riêng trong jenkins-server/
 ├── Jenkinsfile                     entrypoint của job platform-validate
 │
-├── jenkins-server/                 Jenkins controller, chạy độc lập được
-│   ├── docker-compose.yml
+├── jenkins-server/                 Jenkins controller + agent, chạy độc lập được
+│   ├── docker-compose.yml          định nghĩa service jenkins và agent
+│   ├── agent/Dockerfile            agent image: docker cli, kubectl, aws cli, git, python3
 │   ├── .env.example
 │   └── README.md
 │
 ├── platform/                       lớp platform, không chứa gì riêng của project nào
-│   ├── jenkins/agent/Dockerfile    agent image: docker cli, kubectl, aws cli, git, python3
 │   └── pipeline-library/
 │       ├── vars/                   5 pipeline
 │       │   ├── validatePipeline.groovy
@@ -280,11 +273,14 @@ Cách chuẩn là deploy qua pipeline `cdPipeline`, xem mục 6. Lệnh `kubectl
 ### 4.6 Chạy bằng docker compose thay cho Kubernetes
 
 ```bash
-docker compose up -d
+docker compose -f projects/product-media/compose.yml up -d
+docker compose -f projects/product-media/compose.yml ps
 ```
 
-Toàn bộ stack lên gồm Jenkins, agent, postgres, redis, api, worker, portal và nginx gateway.
+Stack lên gồm postgres, redis, migration, api, worker, portal và nginx gateway.
 Gateway ở `http://127.0.0.1:8080`, api ở `http://127.0.0.1:3000`.
+
+Compose này chỉ chạy application, không chạy Jenkins. Jenkins nằm ở `jenkins-server/`, xem mục 2.
 
 ### 4.7 Giới hạn của môi trường local
 
@@ -430,9 +426,10 @@ python scripts/jenkins-jobs.py node      # tạo node, in ra secret
 python scripts/jenkins-jobs.py create    # tạo 13 job
 ```
 
-Ghi secret vào `JENKINS_AGENT_SECRET` trong `.env` rồi dựng agent:
+Ghi secret vào `JENKINS_AGENT_SECRET` trong `jenkins-server/.env` rồi dựng agent:
 
 ```bash
+cd jenkins-server
 docker compose up -d --build agent
 ```
 
@@ -538,20 +535,3 @@ Muốn promote một build tag cụ thể thì chạy trực tiếp job `product
 Lưu ý: build đầu tiên sau khi cập nhật `config.xml` của job sẽ là build **không tham số**, vì POST
 `config.xml` xoá các parameter definition mà Jenkins đã học từ lần build trước. Chạy một lần rồi
 **Build with Parameters** sẽ xuất hiện.
-
----
-
-## 7. Ghi chú vận hành
-
-- Token của ECR Public dài 2772 byte, vượt giới hạn 2560 byte của Windows Credential Manager nên
-  `docker login` thất bại ở bước lưu credential. Cách xử lý là ghi `config.json` rồi gọi
-  `docker --config <dir>`, xem `scripts/ecr-login.ps1` và class `DockerImage`.
-- `docker push` qua proxy của Docker Desktop có thể đứt với lỗi `use of closed network connection`.
-  `DockerImage` retry 3 lần cách nhau 15 giây và build với `--provenance=false`.
-- Agent container mount `/var/run/docker.sock` và `~/.kube/config`. Vì kubeconfig của Docker Desktop trỏ
-  đến `kubernetes.docker.internal:6443`, compose thêm `extra_hosts: kubernetes.docker.internal:host-gateway`
-  để container giải được tên này.
-- Agent chạy bằng `user: root` để đọc được docker socket của host. Môi trường thật nên dùng docker socket
-  proxy hoặc rootless daemon.
-- Pipeline không phụ thuộc hệ điều hành, class `Shell` tự chọn `sh` hoặc `bat` theo `isUnix()`. Vì vậy
-  agent container Linux và agent native Windows đều chạy được, nhưng không đồng thời vì cùng tên node.

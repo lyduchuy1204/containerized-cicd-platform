@@ -27,3 +27,30 @@ services:
       resources:
         limits:
           memory: ${JENKINS_MEM_LIMIT:-2g}
+
+  agent:
+    build:
+      context: ./agent
+    image: ${JENKINS_AGENT_IMAGE:-platform/jenkins-agent:local}
+    container_name: ${JENKINS_AGENT_CONTAINER_NAME:-jenkins-agent}
+    restart: unless-stopped
+    user: root
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      JENKINS_URL: http://jenkins:8080/
+      JENKINS_AGENT_NAME: ${JENKINS_NODE_NAME:-executor-cluster-local}
+      JENKINS_AGENT_WORKDIR: /home/jenkins/agent
+      JENKINS_SECRET: ${JENKINS_AGENT_SECRET:?chay scripts/jenkins-jobs.py node de lay secret roi ghi vao .env}
+      JENKINS_WEB_SOCKET: "true"
+    volumes:
+      - agent-workdir:/home/jenkins/agent
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${KUBECONFIG_HOST:-~/.kube/config}:/home/jenkins/.kube/config:ro
+    extra_hosts:
+      - "kubernetes.docker.internal:host-gateway"
+    depends_on:
+      jenkins:
+        condition: service_healthy
+
+volumes:
+  agent-workdir:
