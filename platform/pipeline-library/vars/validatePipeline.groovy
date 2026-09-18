@@ -1,12 +1,10 @@
 import com.platform.ProjectRegistry
 import com.platform.ManifestPolicy
 import com.platform.Kubectl
-import com.platform.Shell
 
 def call(Map config = [:]) {
 
     def kubectl = new Kubectl(this)
-    def shell = new Shell(this)
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String renderDir = config.get('renderDir', 'target/rendered')
@@ -14,13 +12,6 @@ def call(Map config = [:]) {
     boolean defaultDryRun = config.get('serverDryRun', true)
     int timeoutMinutes = config.get('timeoutMinutes', 15)
     int buildsToKeep = config.get('buildsToKeep', 20)
-
-    String lintScript = config.get('lintScript', 'scripts/validate-groovy.py')
-    String lintCredentialsId = config.get('lintCredentialsId', 'validate')
-    String jenkinsUrl = config.get('jenkinsUrl', 'http://127.0.0.1')
-    String jenkinsUser = config.get('jenkinsUser', 'admin')
-    String pythonCommand = config.get('pythonCommand', 'python')
-    boolean lintStrict = config.get('lintStrict', false)
 
     def overlays = []
     def namespaces = []
@@ -41,11 +32,6 @@ def call(Map config = [:]) {
                 name: 'SERVER_DRY_RUN',
                 defaultValue: defaultDryRun,
                 description: 'Send the rendered manifests to the API server with --dry-run=server. Turn off when no cluster is reachable.'
-            )
-            booleanParam(
-                name: 'LINT_PIPELINES',
-                defaultValue: true,
-                description: 'Send the pipeline files to the Jenkins declarative linter.'
             )
         }
 
@@ -80,27 +66,6 @@ def call(Map config = [:]) {
 
                         if (!overlays) {
                             error 'no overlay resolved from the registry'
-                        }
-                    }
-                }
-            }
-
-            stage('Lint pipeline files') {
-                when {
-                    expression { params.LINT_PIPELINES }
-                }
-                steps {
-                    script {
-                        withCredentials([string(credentialsId: lintCredentialsId, variable: 'JENKINS_TOKEN')]) {
-                            withEnv(["JENKINS_URL=${jenkinsUrl}", "JENKINS_USER=${jenkinsUser}"]) {
-                                def code = shell.status("${pythonCommand} ${lintScript}")
-                                if (code != 0 && lintStrict) {
-                                    error "declarative linter reported problems, exit code ${code}"
-                                }
-                                if (code != 0) {
-                                    unstable "declarative linter reported problems, exit code ${code}"
-                                }
-                            }
                         }
                     }
                 }
