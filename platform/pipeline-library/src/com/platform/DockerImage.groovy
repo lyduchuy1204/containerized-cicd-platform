@@ -45,11 +45,25 @@ class DockerImage implements Serializable {
     }
 
     void build(String image, String tag, String context) {
-        shell.run("${docker()} build -t ${image}:${tag} ${context}")
+        shell.run("${docker()} build --provenance=false -t ${image}:${tag} ${context}")
     }
 
     void push(String image, String tag) {
-        shell.run("${docker()} push ${image}:${tag}")
+        runWithRetry("${docker()} push ${image}:${tag}", 'push')
+    }
+
+    private void runWithRetry(String command, String label, int attempts = 3, int waitSeconds = 15) {
+        for (int attempt = 1; attempt <= attempts; attempt++) {
+            int code = shell.status(command)
+            if (code == 0) {
+                return
+            }
+            steps.echo "${label} that bai lan ${attempt}/${attempts}, exit code ${code}"
+            if (attempt < attempts) {
+                steps.sleep(time: waitSeconds, unit: 'SECONDS')
+            }
+        }
+        steps.error "${label} that bai sau ${attempts} lan: ${command}"
     }
 
     void pull(String image, String tag) {

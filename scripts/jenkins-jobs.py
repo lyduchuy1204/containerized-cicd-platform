@@ -62,7 +62,7 @@ CONFIG = """<?xml version='1.1' encoding='UTF-8'?>
       <extensions/>
     </scm>
     <scriptPath>{script}</scriptPath>
-    <lightweight>false</lightweight>
+    <lightweight>true</lightweight>
   </definition>
   <triggers/>
   <disabled>false</disabled>
