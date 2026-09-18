@@ -1,7 +1,7 @@
 param(
     [string]$Registry = "public.ecr.aws",
     [string]$Region = "us-east-1",
-    [string]$ConfigDir = "$env:WORKSPACE\.docker-ecr"
+    [Parameter(Mandatory = $true)][string]$ConfigDir
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,4 +17,4 @@ $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("AWS:$token"))
 $config = '{"auths":{"' + $Registry + '":{"auth":"' + $auth + '"}}}'
 Set-Content -Path (Join-Path $ConfigDir "config.json") -Value $config -Encoding ASCII -NoNewline
 
-Write-Output "DOCKER_CONFIG=$ConfigDir"
+Write-Output "da ghi credential ECR vao $ConfigDir (token $($token.Length) byte, bo qua credential helper cua Windows)"

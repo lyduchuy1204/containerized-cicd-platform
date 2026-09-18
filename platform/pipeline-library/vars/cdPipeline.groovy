@@ -63,10 +63,6 @@ def call(Map config = [:]) {
             )
         }
 
-        environment {
-            DOCKER_CONFIG = "${WORKSPACE}/.docker-ecr"
-        }
-
         options {
             timeout(time: timeoutMinutes, unit: 'MINUTES')
             timestamps()
