@@ -90,6 +90,11 @@ class ProjectRegistry implements Serializable {
     }
 
     @NonCPS
+    static String awsCredentialsId(Map registry, String projectName) {
+        return setting(registry, projectName, 'awsCredentialsId', '')
+    }
+
+    @NonCPS
     static String migrationJob(Map registry, String projectName) {
         return setting(registry, projectName, 'migrationJob', '')
     }

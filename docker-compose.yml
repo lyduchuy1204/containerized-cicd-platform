@@ -19,8 +19,6 @@ services:
       JENKINS_AGENT_WORKDIR: /home/jenkins/agent
       JENKINS_SECRET: ${JENKINS_AGENT_SECRET:?chay scripts/jenkins-jobs.py node de lay secret roi ghi vao .env}
       JENKINS_WEB_SOCKET: "true"
-      DOCKER_CONFIG: /home/jenkins/.docker
-      KUBECONFIG: /home/jenkins/.kube/config
     volumes:
       - agent-workdir:/home/jenkins/agent
       - /var/run/docker.sock:/var/run/docker.sock

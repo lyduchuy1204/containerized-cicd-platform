@@ -18,6 +18,7 @@ def call(Map config = [:]) {
     String credentialsId = ''
     String registryType = ''
     String awsRegion = ''
+    String awsCredentialsId = ''
     boolean insecure = false
     def plan = []
 
@@ -91,6 +92,7 @@ def call(Map config = [:]) {
                         credentialsId = ProjectRegistry.credentialsId(registry, project)
                         registryType = ProjectRegistry.registryType(registry, project)
                         awsRegion = ProjectRegistry.awsRegion(registry, project)
+                        awsCredentialsId = ProjectRegistry.awsCredentialsId(registry, project)
                         insecure = ProjectRegistry.insecureRegistry(registry, project)
 
                         currentBuild.displayName = "#${BUILD_NUMBER} ${project} ${sourceTag} to ${targetTag}"
@@ -109,7 +111,7 @@ def call(Map config = [:]) {
                 steps {
                     script {
                         if (registryType == 'ecr-public') {
-                            dockerImage.loginEcrPublic(awsRegion)
+                            dockerImage.loginEcrPublic(awsRegion, awsCredentialsId)
                         } else {
                             dockerImage.login(registryHost, credentialsId)
                         }

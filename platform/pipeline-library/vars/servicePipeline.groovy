@@ -9,7 +9,11 @@ def call(Map config = [:]) {
     int timeoutMinutes = config.get('timeoutMinutes', 120)
     int buildsToKeep = config.get('buildsToKeep', 30)
 
-    String prefix = ''
+    if (!project || !service) {
+        error 'project va service la bat buoc trong config cua servicePipeline'
+    }
+
+    String prefix = "${project}-${service}"
     String buildTag = ''
 
     pipeline {
@@ -48,12 +52,11 @@ def call(Map config = [:]) {
             stage('Resolve scope') {
                 steps {
                     script {
-                        if (!project || !service) {
-                            error 'project va service la bat buoc trong config cua servicePipeline'
-                        }
                         def registry = ProjectRegistry.load()
                         ProjectRegistry.buildPlan(registry, project, service)
-                        prefix = ProjectRegistry.jobPrefix(registry, project, service)
+                        if (ProjectRegistry.jobPrefix(registry, project, service) != prefix) {
+                            error "job prefix khong khop registry: ${prefix}"
+                        }
 
                         currentBuild.displayName = "#${BUILD_NUMBER} ${prefix}"
                         echo "project     : ${project}"
@@ -111,6 +114,9 @@ def call(Map config = [:]) {
                 }
                 steps {
                     script {
+                        if (!buildTag) {
+                            error 'buildTag trong, hay chay lai tu dau thay vi restart tu stage promote'
+                        }
                         build job: "${prefix}-promote", wait: true, parameters: [
                             string(name: 'PROJECT', value: project),
                             string(name: 'SERVICE', value: service),
@@ -152,6 +158,9 @@ def call(Map config = [:]) {
                 }
                 steps {
                     script {
+                        if (!buildTag) {
+                            error 'buildTag trong, hay chay lai tu dau thay vi restart tu stage promote'
+                        }
                         build job: "${prefix}-promote", wait: true, parameters: [
                             string(name: 'PROJECT', value: project),
                             string(name: 'SERVICE', value: service),

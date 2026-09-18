@@ -13,6 +13,7 @@ class PlatformProjects implements Serializable {
                 registry: 'public.ecr.aws/e2k8v4q1',
                 registryType: 'ecr-public',
                 awsRegion: 'us-east-1',
+                awsCredentialsId: 'aws-ecr-public',
                 insecureRegistry: false,
                 namespaceSuffixSeparator: '-',
                 sourceCheckoutDir: '.sources'

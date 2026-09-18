@@ -18,7 +18,23 @@ class DockerImage implements Serializable {
         return "docker --config \"${configDir()}\""
     }
 
-    void loginEcrPublic(String region, String registryHost = 'public.ecr.aws') {
+    void loginEcrPublic(String region, String credentialsId = '', String registryHost = 'public.ecr.aws') {
+        if (!credentialsId) {
+            steps.echo 'khong co awsCredentialsId, dung AWS credential co san tren agent'
+            runEcrLogin(region, registryHost)
+            return
+        }
+        def binding = steps.usernamePassword(
+            credentialsId: credentialsId,
+            usernameVariable: 'AWS_ACCESS_KEY_ID',
+            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+        )
+        steps.withCredentials([binding]) {
+            runEcrLogin(region, registryHost)
+        }
+    }
+
+    private void runEcrLogin(String region, String registryHost) {
         if (steps.isUnix()) {
             shell.run("aws ecr-public get-login-password --region ${region} | ${docker()} login ${registryHost} --username AWS --password-stdin")
             return

@@ -28,6 +28,7 @@ def call(Map config = [:]) {
     String credentialsId = ''
     String registryType = ''
     String awsRegion = ''
+    String awsCredentialsId = ''
     String migrationJob = ''
     String smokeCommand = ''
     boolean insecure = false
@@ -104,6 +105,7 @@ def call(Map config = [:]) {
                         credentialsId = ProjectRegistry.credentialsId(registry, project)
                         registryType = ProjectRegistry.registryType(registry, project)
                         awsRegion = ProjectRegistry.awsRegion(registry, project)
+                        awsCredentialsId = ProjectRegistry.awsCredentialsId(registry, project)
                         migrationJob = ProjectRegistry.migrationJob(registry, project)
                         String owner = ProjectRegistry.migrationService(registry, project)
                         if (params.SERVICE?.trim() && owner && params.SERVICE.trim() != owner) {
@@ -130,7 +132,7 @@ def call(Map config = [:]) {
                 steps {
                     script {
                         if (registryType == 'ecr-public') {
-                            dockerImage.loginEcrPublic(awsRegion)
+                            dockerImage.loginEcrPublic(awsRegion, awsCredentialsId)
                         } else {
                             dockerImage.login(registryHost, credentialsId)
                         }
