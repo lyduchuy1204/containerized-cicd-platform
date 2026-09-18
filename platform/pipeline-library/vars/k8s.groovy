@@ -10,12 +10,6 @@ def apply(String overlayPath) {
     shell.run("kubectl apply -k ${overlayPath}")
 }
 
-def setImageTag(String overlayPath, String image, String tag) {
-    dir(overlayPath) {
-        shell.run("kustomize edit set image ${image}:${tag}")
-    }
-}
-
 def waitRollout(String namespace, String deployment, String timeout = '5m') {
     shell.run("kubectl -n ${namespace} rollout status deployment/${deployment} --timeout=${timeout}")
 }
@@ -40,9 +34,16 @@ def jobLogs(String namespace, String jobName) {
     shell.status("kubectl -n ${namespace} logs job/${jobName} --tail=40")
 }
 
+def namespaceExists(String namespace) {
+    return shell.status("kubectl get namespace ${namespace}") == 0
+}
+
 def ensureNamespace(String namespace) {
-    shell.run("kubectl create namespace ${namespace} --dry-run=client -o yaml > namespace-ensure.yaml")
-    shell.run('kubectl apply -f namespace-ensure.yaml')
+    if (namespaceExists(namespace)) {
+        echo "namespace ${namespace} already exists"
+        return
+    }
+    shell.run("kubectl create namespace ${namespace}")
 }
 
 def runningDigest(String namespace, String serviceName) {

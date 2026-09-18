@@ -1,7 +1,6 @@
 def call(Map config = [:]) {
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
-    String registryFile = config.get('registryFile', 'platform/projects.yaml')
     String defaultProject = config.get('project', '')
     String defaultEnvironment = config.get('environment', '')
     String rolloutTimeout = config.get('rolloutTimeout', '5m')
@@ -31,7 +30,7 @@ def call(Map config = [:]) {
             string(
                 name: 'PROJECT',
                 defaultValue: defaultProject,
-                description: 'Project declared in platform/projects.yaml.'
+                description: 'Project declared in the platform registry.'
             )
             string(
                 name: 'ENVIRONMENT',
@@ -73,7 +72,7 @@ def call(Map config = [:]) {
                             error 'ENVIRONMENT is required'
                         }
 
-                        def registry = projectRegistry.load(registryFile)
+                        def registry = projectRegistry.load()
 
                         if (!projectRegistry.hasEnvironment(registry, project, environment)) {
                             error "environment ${environment} is not declared for project ${project}"

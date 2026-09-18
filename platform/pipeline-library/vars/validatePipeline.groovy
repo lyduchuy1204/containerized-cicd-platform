@@ -1,7 +1,6 @@
 def call(Map config = [:]) {
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
-    String registryFile = config.get('registryFile', 'platform/projects.yaml')
     String renderDir = config.get('renderDir', 'target/rendered')
     String defaultProject = config.get('project', '')
     boolean defaultDryRun = config.get('serverDryRun', true)
@@ -9,6 +8,7 @@ def call(Map config = [:]) {
     int buildsToKeep = config.get('buildsToKeep', 20)
 
     def overlays = []
+    def namespaces = []
 
     pipeline {
 
@@ -47,14 +47,15 @@ def call(Map config = [:]) {
             stage('Resolve scope') {
                 steps {
                     script {
-                        def registry = projectRegistry.load(registryFile)
+                        def registry = projectRegistry.load()
                         def selected = projectRegistry.selectedProjects(registry, params.PROJECT)
                         overlays = projectRegistry.overlayPaths(registry, params.PROJECT)
+                        namespaces = projectRegistry.namespaces(registry, params.PROJECT)
 
                         currentBuild.displayName = "#${BUILD_NUMBER} ${selected.join(' ')}"
-                        echo "registry file : ${registryFile}"
                         echo "projects      : ${selected.join(', ')}"
                         echo "overlays      : ${overlays.join(', ')}"
+                        echo "namespaces    : ${namespaces.join(', ')}"
                         echo "server dry run: ${params.SERVER_DRY_RUN}"
 
                         if (!overlays) {
@@ -92,6 +93,19 @@ def call(Map config = [:]) {
                             error "manifest policy violations: ${failures.size()}"
                         }
                         echo "all ${overlays.size()} overlays satisfy the manifest policy"
+                    }
+                }
+            }
+
+            stage('Ensure namespaces') {
+                when {
+                    expression { params.SERVER_DRY_RUN }
+                }
+                steps {
+                    script {
+                        for (namespace in namespaces) {
+                            k8s.ensureNamespace(namespace)
+                        }
                     }
                 }
             }

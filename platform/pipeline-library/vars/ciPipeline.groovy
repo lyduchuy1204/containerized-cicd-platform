@@ -1,7 +1,6 @@
 def call(Map config = [:]) {
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
-    String registryFile = config.get('registryFile', 'platform/projects.yaml')
     String defaultProject = config.get('project', '')
     int timeoutMinutes = config.get('timeoutMinutes', 60)
     int buildsToKeep = config.get('buildsToKeep', 30)
@@ -23,7 +22,7 @@ def call(Map config = [:]) {
             string(
                 name: 'PROJECT',
                 defaultValue: defaultProject,
-                description: 'Project declared in platform/projects.yaml.'
+                description: 'Project declared in the platform registry.'
             )
             string(
                 name: 'POINTER_TAG',
@@ -60,7 +59,7 @@ def call(Map config = [:]) {
                             error 'PROJECT is required'
                         }
 
-                        def registry = projectRegistry.load(registryFile)
+                        def registry = projectRegistry.load()
                         plan = projectRegistry.buildPlan(registry, project)
                         registryHost = projectRegistry.registryHost(registry, project)
                         credentialsId = projectRegistry.credentialsId(registry, project)

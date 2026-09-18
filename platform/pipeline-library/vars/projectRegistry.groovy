@@ -1,5 +1,5 @@
-def load(String file) {
-    return readYaml(file: file)
+def load() {
+    return platformProjects.all()
 }
 
 def project(Map registry, String projectName) {
@@ -123,4 +123,14 @@ def overlayPaths(Map registry, String projectName) {
         }
     }
     return paths
+}
+
+def namespaces(Map registry, String projectName) {
+    def result = []
+    for (name in selectedProjects(registry, projectName)) {
+        for (environment in environments(registry, name)) {
+            result.add(namespace(registry, name, environment))
+        }
+    }
+    return result
 }

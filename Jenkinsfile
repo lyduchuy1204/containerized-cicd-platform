@@ -12,6 +12,5 @@ library identifier: "platform@${libraryVersion}", retriever: modernSCM(
 )
 
 validatePipeline(
-    agentLabel: env.PLATFORM_AGENT_LABEL ?: 'executor-cluster-local',
-    registryFile: 'platform/projects.yaml'
+    agentLabel: env.PLATFORM_AGENT_LABEL ?: 'executor-cluster-local'
 )
