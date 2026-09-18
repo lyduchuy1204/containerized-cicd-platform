@@ -181,7 +181,7 @@ không.
 | Namespace | `<project>-<env>` | `product-media-dev` |
 | Label | `app.kubernetes.io/part-of`, `app.kubernetes.io/name` | `part-of: product-media`, `name: api` |
 | Job | `<project>-<service>-<kind>` | `product-media-api-ci` |
-| Build tag | `b<BUILD_NUMBER>` | `b12` |
+| Build tag | `b` + BUILD_NUMBER | `b12` |
 | Pointer tag | tên môi trường | `dev`, `staging`, `prod` |
 
 ---
@@ -350,12 +350,12 @@ trước khi lên prod:
 product-media-api-main
   │
   ├─ platform-validate                    render overlay, check convention, server dry run
-  ├─ product-media-api-ci                 clone source, build, push b<n> và dev
+  ├─ product-media-api-ci                 clone source, build, push bN và dev
   ├─ product-media-api-cd     dev         apply overlay, rollout restart, chờ ready
-  ├─ product-media-api-promote  b<n> → staging
+  ├─ product-media-api-promote  bN → staging
   ├─ product-media-api-cd     staging
   ├─ input approve                        chờ người xác nhận
-  ├─ product-media-api-promote  b<n> → prod
+  ├─ product-media-api-promote  bN → prod
   └─ product-media-api-cd     prod
 ```
 
@@ -398,7 +398,7 @@ chọn kind **Username with password**, ID đặt đúng `aws-ecr-public`.
 
 Mỗi lần CI push hai tag lên cùng một image:
 
-- `b<BUILD_NUMBER>` bất biến, dùng để truy nguyên
+- `b` + BUILD_NUMBER, bất biến, dùng để truy nguyên
 - pointer tag `dev`, `staging` hoặc `prod`, di chuyển theo thời gian
 
 Manifest tham chiếu pointer tag và đặt `imagePullPolicy: Always`. Hai hệ quả:
@@ -467,7 +467,7 @@ Dashboard được nhóm bằng View để phân biệt project và service: `Ma
 6. Theo dõi ở **Stage View** trên trang job, hoặc mở build rồi chọn **Console Output**.
 7. Các job downstream xuất hiện trong **Console Output** dưới dạng link, bấm vào để xem log từng job.
 8. Nếu tích `DEPLOY_PROD`, build sẽ dừng ở stage **Approve prod** và hiện prompt
-   `Deploy api b<n> lên prod?`. Bấm **Deploy** để tiếp tục, hoặc **Abort** để dừng.
+   `Deploy api bN lên prod?`. Bấm **Deploy** để tiếp tục, hoặc **Abort** để dừng.
 
 ### 6.3 Chạy riêng từng job
 
