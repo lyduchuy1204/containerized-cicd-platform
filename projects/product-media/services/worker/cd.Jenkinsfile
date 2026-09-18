@@ -13,6 +13,7 @@ library identifier: "platform@${libraryVersion}", retriever: modernSCM(
 
 cdPipeline(
     project: 'product-media',
+    environment: 'dev',
     service: 'worker',
     agentLabel: env.PLATFORM_AGENT_LABEL ?: 'executor-cluster-local'
 )
