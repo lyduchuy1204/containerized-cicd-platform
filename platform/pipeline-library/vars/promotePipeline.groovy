@@ -1,4 +1,9 @@
+import com.platform.ProjectRegistry
+import com.platform.DockerImage
+
 def call(Map config = [:]) {
+
+    def dockerImage = new DockerImage(this)
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String defaultProject = config.get('project', '')
@@ -72,11 +77,11 @@ def call(Map config = [:]) {
                             error 'SOURCE_TAG and TARGET_TAG must differ'
                         }
 
-                        def registry = projectRegistry.load()
-                        plan = projectRegistry.buildPlan(registry, project)
-                        registryHost = projectRegistry.registryHost(registry, project)
-                        credentialsId = projectRegistry.credentialsId(registry, project)
-                        insecure = projectRegistry.insecureRegistry(registry, project)
+                        def registry = ProjectRegistry.load()
+                        plan = ProjectRegistry.buildPlan(registry, project)
+                        registryHost = ProjectRegistry.registryHost(registry, project)
+                        credentialsId = ProjectRegistry.credentialsId(registry, project)
+                        insecure = ProjectRegistry.insecureRegistry(registry, project)
 
                         currentBuild.displayName = "#${BUILD_NUMBER} ${project} ${sourceTag} to ${targetTag}"
                         echo "project    : ${project}"

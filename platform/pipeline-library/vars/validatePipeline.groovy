@@ -1,4 +1,12 @@
+import com.platform.ProjectRegistry
+import com.platform.ManifestPolicy
+import com.platform.Kubectl
+import com.platform.Shell
+
 def call(Map config = [:]) {
+
+    def kubectl = new Kubectl(this)
+    def shell = new Shell(this)
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String renderDir = config.get('renderDir', 'target/rendered')
@@ -6,6 +14,13 @@ def call(Map config = [:]) {
     boolean defaultDryRun = config.get('serverDryRun', true)
     int timeoutMinutes = config.get('timeoutMinutes', 15)
     int buildsToKeep = config.get('buildsToKeep', 20)
+
+    String lintScript = config.get('lintScript', 'scripts/validate-groovy.py')
+    String lintCredentialsId = config.get('lintCredentialsId', 'validate')
+    String jenkinsUrl = config.get('jenkinsUrl', 'http://127.0.0.1')
+    String jenkinsUser = config.get('jenkinsUser', 'admin')
+    String pythonCommand = config.get('pythonCommand', 'python')
+    boolean lintStrict = config.get('lintStrict', false)
 
     def overlays = []
     def namespaces = []
@@ -27,6 +42,11 @@ def call(Map config = [:]) {
                 defaultValue: defaultDryRun,
                 description: 'Send the rendered manifests to the API server with --dry-run=server. Turn off when no cluster is reachable.'
             )
+            booleanParam(
+                name: 'LINT_PIPELINES',
+                defaultValue: true,
+                description: 'Send the pipeline files to the Jenkins declarative linter.'
+            )
         }
 
         options {
@@ -47,10 +67,10 @@ def call(Map config = [:]) {
             stage('Resolve scope') {
                 steps {
                     script {
-                        def registry = projectRegistry.load()
-                        def selected = projectRegistry.selectedProjects(registry, params.PROJECT)
-                        overlays = projectRegistry.overlayPaths(registry, params.PROJECT)
-                        namespaces = projectRegistry.namespaces(registry, params.PROJECT)
+                        def registry = ProjectRegistry.load()
+                        def selected = ProjectRegistry.selectedProjects(registry, params.PROJECT)
+                        overlays = ProjectRegistry.overlayPaths(registry, params.PROJECT)
+                        namespaces = ProjectRegistry.namespaces(registry, params.PROJECT)
 
                         currentBuild.displayName = "#${BUILD_NUMBER} ${selected.join(' ')}"
                         echo "projects      : ${selected.join(', ')}"
@@ -65,11 +85,32 @@ def call(Map config = [:]) {
                 }
             }
 
+            stage('Lint pipeline files') {
+                when {
+                    expression { params.LINT_PIPELINES }
+                }
+                steps {
+                    script {
+                        withCredentials([string(credentialsId: lintCredentialsId, variable: 'JENKINS_TOKEN')]) {
+                            withEnv(["JENKINS_URL=${jenkinsUrl}", "JENKINS_USER=${jenkinsUser}"]) {
+                                def code = shell.status("${pythonCommand} ${lintScript}")
+                                if (code != 0 && lintStrict) {
+                                    error "declarative linter reported problems, exit code ${code}"
+                                }
+                                if (code != 0) {
+                                    unstable "declarative linter reported problems, exit code ${code}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             stage('Render overlays') {
                 steps {
                     script {
                         for (overlay in overlays) {
-                            writeFile file: renderedFile(renderDir, overlay), text: k8s.render(overlay)
+                            writeFile file: renderedFile(renderDir, overlay), text: kubectl.render(overlay)
                             echo "rendered ${overlay}"
                         }
                     }
@@ -82,7 +123,7 @@ def call(Map config = [:]) {
                         def failures = []
                         for (overlay in overlays) {
                             def rendered = readFile(file: renderedFile(renderDir, overlay))
-                            for (violation in manifestPolicy.violations(rendered)) {
+                            for (violation in ManifestPolicy.violations(rendered)) {
                                 failures.add("${overlay}: ${violation}")
                             }
                         }
@@ -104,7 +145,7 @@ def call(Map config = [:]) {
                 steps {
                     script {
                         for (namespace in namespaces) {
-                            k8s.ensureNamespace(namespace)
+                            kubectl.ensureNamespace(namespace)
                         }
                     }
                 }
@@ -117,7 +158,7 @@ def call(Map config = [:]) {
                 steps {
                     script {
                         for (overlay in overlays) {
-                            k8s.dryRun(overlay)
+                            kubectl.dryRun(overlay)
                         }
                     }
                 }

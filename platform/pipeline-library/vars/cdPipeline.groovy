@@ -1,4 +1,15 @@
+import com.platform.ProjectRegistry
+import com.platform.Kubectl
+import com.platform.DockerImage
+import com.platform.Rollback
+import com.platform.Shell
+
 def call(Map config = [:]) {
+
+    def kubectl = new Kubectl(this)
+    def dockerImage = new DockerImage(this)
+    def rollback = new Rollback(this)
+    def shell = new Shell(this)
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String defaultProject = config.get('project', '')
@@ -72,20 +83,20 @@ def call(Map config = [:]) {
                             error 'ENVIRONMENT is required'
                         }
 
-                        def registry = projectRegistry.load()
+                        def registry = ProjectRegistry.load()
 
-                        if (!projectRegistry.hasEnvironment(registry, project, environment)) {
+                        if (!ProjectRegistry.hasEnvironment(registry, project, environment)) {
                             error "environment ${environment} is not declared for project ${project}"
                         }
 
-                        plan = projectRegistry.buildPlan(registry, project)
-                        namespace = projectRegistry.namespace(registry, project, environment)
-                        overlay = projectRegistry.overlayPath(registry, project, environment)
-                        registryHost = projectRegistry.registryHost(registry, project)
-                        credentialsId = projectRegistry.credentialsId(registry, project)
-                        migrationJob = projectRegistry.migrationJob(registry, project)
-                        smokeCommand = projectRegistry.smokeCommand(registry, project)
-                        insecure = projectRegistry.insecureRegistry(registry, project)
+                        plan = ProjectRegistry.buildPlan(registry, project)
+                        namespace = ProjectRegistry.namespace(registry, project, environment)
+                        overlay = ProjectRegistry.overlayPath(registry, project, environment)
+                        registryHost = ProjectRegistry.registryHost(registry, project)
+                        credentialsId = ProjectRegistry.credentialsId(registry, project)
+                        migrationJob = ProjectRegistry.migrationJob(registry, project)
+                        smokeCommand = ProjectRegistry.smokeCommand(registry, project)
+                        insecure = ProjectRegistry.insecureRegistry(registry, project)
                         tag = environment
 
                         currentBuild.displayName = "#${BUILD_NUMBER} ${project} ${environment}"
@@ -133,7 +144,7 @@ def call(Map config = [:]) {
                 steps {
                     script {
                         for (unit in plan) {
-                            def digest = k8s.runningDigest(namespace, unit.service)
+                            def digest = kubectl.runningDigest(namespace, unit.service)
                             previousDigests[unit.service] = digest
                             echo digest ? "${unit.service} currently runs ${digest}" : "${unit.service} is not running yet"
                         }
@@ -145,9 +156,9 @@ def call(Map config = [:]) {
                 steps {
                     script {
                         if (migrationJob) {
-                            k8s.deleteJob(namespace, migrationJob)
+                            kubectl.deleteJob(namespace, migrationJob)
                         }
-                        k8s.apply(overlay)
+                        kubectl.apply(overlay)
                     }
                 }
             }
@@ -159,9 +170,9 @@ def call(Map config = [:]) {
                 steps {
                     script {
                         try {
-                            k8s.waitJob(namespace, migrationJob)
+                            kubectl.waitJob(namespace, migrationJob)
                         } catch (error) {
-                            k8s.jobLogs(namespace, migrationJob)
+                            kubectl.jobLogs(namespace, migrationJob)
                             throw error
                         }
                     }
@@ -172,10 +183,10 @@ def call(Map config = [:]) {
                 steps {
                     script {
                         for (unit in plan) {
-                            k8s.restartRollout(namespace, unit.service)
+                            kubectl.restartRollout(namespace, unit.service)
                         }
                         for (unit in plan) {
-                            k8s.waitRollout(namespace, unit.service, rolloutTimeout)
+                            kubectl.waitRollout(namespace, unit.service, rolloutTimeout)
                         }
                     }
                 }
@@ -199,7 +210,7 @@ def call(Map config = [:]) {
                     script {
                         def lines = ["project=${project}", "environment=${environment}", "namespace=${namespace}"]
                         for (unit in plan) {
-                            lines.add("${unit.service}=${k8s.runningDigest(namespace, unit.service)}")
+                            lines.add("${unit.service}=${kubectl.runningDigest(namespace, unit.service)}")
                         }
                         writeFile file: 'target/cd-deployed.txt', text: lines.join('\n')
                         echo lines.join('\n')

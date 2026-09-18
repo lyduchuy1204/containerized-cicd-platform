@@ -1,4 +1,11 @@
+import com.platform.ProjectRegistry
+import com.platform.DockerImage
+import com.platform.ImageTag
+
 def call(Map config = [:]) {
+
+    def dockerImage = new DockerImage(this)
+    def imageTag = new ImageTag(this)
 
     String agentLabel = config.get('agentLabel', 'executor-cluster-local')
     String defaultProject = config.get('project', '')
@@ -59,10 +66,10 @@ def call(Map config = [:]) {
                             error 'PROJECT is required'
                         }
 
-                        def registry = projectRegistry.load()
-                        plan = projectRegistry.buildPlan(registry, project)
-                        registryHost = projectRegistry.registryHost(registry, project)
-                        credentialsId = projectRegistry.credentialsId(registry, project)
+                        def registry = ProjectRegistry.load()
+                        plan = ProjectRegistry.buildPlan(registry, project)
+                        registryHost = ProjectRegistry.registryHost(registry, project)
+                        credentialsId = ProjectRegistry.credentialsId(registry, project)
                         tag = imageTag.commit()
                         pointerTag = params.POINTER_TAG?.trim()
 
