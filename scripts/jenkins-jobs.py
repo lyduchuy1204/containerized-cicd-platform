@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -13,6 +14,10 @@ USER = os.environ.get("JENKINS_USER", "")
 TOKEN = os.environ.get("JENKINS_TOKEN", "")
 REPO = os.environ.get("PLATFORM_LIB_REPO", "https://github.com/lyduchuy1204/containerized-cicd-platform.git")
 BRANCH = os.environ.get("PLATFORM_LIB_VERSION", "main")
+
+NODE_NAME = os.environ.get("JENKINS_NODE_NAME", "executor-cluster-local")
+NODE_REMOTE_FS = os.environ.get("JENKINS_NODE_REMOTE_FS", "/home/jenkins/agent")
+NODE_EXECUTORS = os.environ.get("JENKINS_NODE_EXECUTORS", "3")
 
 PROJECT = "product-media"
 SERVICES = ["api", "portal", "worker"]
@@ -161,6 +166,76 @@ def create():
             print("      " + response.strip().split("\n")[0][:200])
 
 
+def node_exists():
+    status, _ = call(f"/computer/{urllib.parse.quote(NODE_NAME)}/api/json?tree=displayName")
+    return status == 200
+
+
+def node_secret():
+    status, body = call(f"/computer/{urllib.parse.quote(NODE_NAME)}/jenkins-agent.jnlp")
+    if status != 200:
+        print(f"  khong doc duoc secret ({status})")
+        return None
+    found = re.search(r"<argument>([0-9a-f]{64})</argument>", body)
+    if not found:
+        print("  khong tim thay secret trong jnlp")
+        return None
+    return found.group(1)
+
+
+def node_create():
+    payload = {
+        "name": NODE_NAME,
+        "nodeDescription": "Agent chay docker, kubectl, aws cli cho platform pipeline.",
+        "numExecutors": NODE_EXECUTORS,
+        "remoteFS": NODE_REMOTE_FS,
+        "labelString": NODE_NAME,
+        "mode": "EXCLUSIVE",
+        "type": "hudson.slaves.DumbSlave",
+        "retentionStrategy": {"stapler-class": "hudson.slaves.RetentionStrategy$Always"},
+        "nodeProperties": {"stapler-class-bag": "true"},
+        "launcher": {
+            "stapler-class": "hudson.slaves.JNLPLauncher",
+            "$class": "hudson.slaves.JNLPLauncher",
+            "workDirSettings": {
+                "disabled": False,
+                "workDirPath": "",
+                "internalDir": "remoting",
+                "failIfWorkDirIsMissing": False,
+            },
+            "webSocket": True,
+        },
+    }
+    form = urllib.parse.urlencode({
+        "name": NODE_NAME,
+        "type": "hudson.slaves.DumbSlave",
+        "json": json.dumps(payload),
+    }).encode()
+    status, body = call("/computer/doCreateItem", data=form,
+                        content_type="application/x-www-form-urlencoded")
+    if status in (200, 302):
+        print(f"OK   tao moi node {NODE_NAME} (http {status})")
+        return True
+    print(f"FAIL tao node {NODE_NAME} (http {status})")
+    print("      " + body.strip().split("\n")[0][:200])
+    return False
+
+
+def node():
+    if node_exists():
+        print(f"node {NODE_NAME} da ton tai, bo qua buoc tao")
+    elif not node_create():
+        return False
+    secret = node_secret()
+    if not secret:
+        return False
+    print(f"  name   = {NODE_NAME}")
+    print(f"  label  = {NODE_NAME}")
+    print(f"  secret = {secret}")
+    print("  ghi secret nay vao JENKINS_AGENT_SECRET trong file .env")
+    return True
+
+
 def show():
     for name in existing():
         status, body = call(f"/job/{urllib.parse.quote(name)}/api/json?tree=name,description")
@@ -186,6 +261,11 @@ def main():
         create()
         return 0
 
+    if action == "node":
+        if not whoami():
+            return 1
+        return 0 if node() else 1
+
     if action == "list":
         show()
         return 0
@@ -203,7 +283,7 @@ def main():
         console(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else "lastBuild")
         return 0
 
-    sys.exit(f"lenh khong biet: {action}. Dung whoami, create, list, build, result, log")
+    sys.exit(f"lenh khong biet: {action}. Dung whoami, node, create, list, build, result, log")
 
 
 if __name__ == "__main__":
